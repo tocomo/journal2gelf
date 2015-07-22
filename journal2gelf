@@ -107,6 +107,7 @@ class JournalToGelf:
                 elif key.startswith('.'):
                     continue
                 elif key == '__CURSOR':
+                    self._persist_cursor(value)
                     continue
                 else:
                     # prefix additional fields with '_' for graylog.
@@ -116,6 +117,9 @@ class JournalToGelf:
             print "Warning: invalid JSON. Skipping this record."
         finally:
             self.buf.clear()
+
+    def _persist_cursor(self, cursor):
+        pass
 
     def run(self):
         for line in self.fp:
@@ -145,6 +149,21 @@ class JournalToGelf:
                     self.buf.append(line)
 
 
+class PersistantCursor(object):
+    def get(self):
+        raise NotImplementedError
+    def set(self, cursor):
+        raise NotImplementedError
+
+class EtcdCursor(PersistantCursor):
+    def __init__(self, client):
+        self.client = client
+    def get(self):
+        pass
+    def set(self, cursor):
+        pass
+
+
 if __name__ == '__main__':
     import optparse
     import subprocess
@@ -157,15 +176,47 @@ if __name__ == '__main__':
     opts_parser.add_option('-t', '--tail', dest='tail', default=False, action='store_true',
                             help='Start journalctl and tail it forever (default: %default)')
     opts_parser.add_option('-m', '--multiline-format', dest='multiline_format', default=False, action='store_true',
-                            help='Expect multi-line JSON format (systemd version < 190) (default: %default))')
+                            help='Expect multi-line JSON format (systemd version < 190) (default: %default)')
+
+    opts_parser.add_option('-c', '--persist-cursor', dest='persist_cursor', default=False, action='store_true',
+                            help='Persist the cursor. Will manage interactions with journalctl. '
+                           'Will read from the beginning if no cursor found. '
+                           'Must also specify --etcd-host. '
+                           'Mutually exclusive with --tail. (default: %default)')
+    opts_parser.add_option('--etcd-host', dest='etcd_host', default='localhost:4001',
+                           help='etcd host to store cursor. (default: %default)')
     (opts, args) = opts_parser.parse_args()
 
+    cursor_store = None
     read_from_fd = None
     if opts.tail:
+        if opts.etcd_host or opts.persist_cursor:
+            print "--tail is mutually exclusive with --persist-cursor and --etcd-host."
+            sys.exit(-1)
         read_from_fd = subprocess.Popen(['journalctl', '-o', 'json', '-f'],
                                         stdout=subprocess.PIPE).stdout
+    elif opts.persist_cursor:
+        if not opts.etcd_host:
+            print "--etcd-host required to persist cursor."
+            sys.exit(-1)
+
+        etcd_host, etcd_port = opts.etcd_host.split(':')
+        etcd_client = etcd.Client(host=etcd_host, port=etcd_port)
+        cursor_store = EtcdCursor(etcd_client)
+        cursor = cursor_store.get()
+        if cursor is not None:
+            read_from_fd = subprocess.Popen(
+                ['journalctl', '-o', 'json', '-f',
+                 '-n', '0',
+                 '--after-cursor', cursor
+                ], stdout=subprocess.PIPE).stdout
+        else:
+            read_from_fd = subprocess.Popen(
+                ['journalctl', '-o', 'json', '-f', '--no-tail'],
+                stdout=subprocess.PIPE).stdout
+
     else:
         read_from_fd = sys.stdin
 
-    parser = JournalToGelf(fp=read_from_fd, host=opts.host, port=opts.port, multiline_format=opts.multiline_format)
+    parser = JournalToGelf(fp=read_from_fd, host=opts.host, port=opts.port, multiline_format=opts.multiline_format, cursor_store=cursor_store)
     parser.run()
