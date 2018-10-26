@@ -2,11 +2,11 @@ from distutils.core import setup
 
 setup(
     name='journal2gelf',
-    version='0.0.3',
+    version='0.0.4',
     author='Joe Miller',
     author_email='joeym@joeym.net',
     scripts=['journal2gelf'],
-    url='https://github.com/systemd/journal2gelf',
+    url='https://github.com/tocomo/journal2gelf',
     license='LICENSE',
     description="Send logs from systemd's journald to a GELF server like Graylog2",
     long_description=open('README.md').read(),
