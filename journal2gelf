@@ -114,7 +114,7 @@ class JournalToGelf:
                 else:
                     # prefix additional fields with '_' for graylog.
                     msg['_' + key] = value
-            if msg['short_message'] and len(msg['short_message']) > 0:
+            if msg['short_message'] and len(msg['short_message'].strip()) > 0:
                 self.gelf.send(zlib.compress(json.dumps(msg)))
         except ValueError:
             print "Warning: invalid JSON. Skipping this record."
