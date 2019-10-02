@@ -171,7 +171,7 @@ if __name__ == '__main__':
         read_from_fd = sys.stdin
 
     parser = JournalToGelf(host=opts.host, port=opts.port, multiline_format=opts.multiline_format)
-    for line in read_from_fd:
+    for line in iter(read_from_fd.readline, ''):
         try:
             parser.run(line)
         except Exception, e:
