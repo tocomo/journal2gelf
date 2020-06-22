@@ -47,31 +47,31 @@ import graypy
 
 from collections import deque
 
+
 # TODO:
 # - [nice to have] rabbitmq handler
 
 class JournalToGelf:
-
     facility_names = {
-        0:   "kern",
-        1:   "user",
-        2:   "mail",
-        3:   "daemon",
-        4:   "auth",
-        5:   "syslog",
-        6:   "lpr",
-        7:   "news",
-        8:   "uucp",
-        9:   "cron",
-        10:  "authpriv",
-        16:  "local0",
-        17:  "local1",
-        18:  "local2",
-        19:  "local3",
-        20:  "local4",
-        21:  "local5",
-        22:  "local6",
-        23:  "local7"
+        0: "kern",
+        1: "user",
+        2: "mail",
+        3: "daemon",
+        4: "auth",
+        5: "syslog",
+        6: "lpr",
+        7: "news",
+        8: "uucp",
+        9: "cron",
+        10: "authpriv",
+        16: "local0",
+        17: "local1",
+        18: "local2",
+        19: "local3",
+        20: "local4",
+        21: "local5",
+        22: "local6",
+        23: "local7"
     }
 
     def __init__(self, host='localhost', port=12201, multiline_format=False):
@@ -117,7 +117,7 @@ class JournalToGelf:
             if msg['short_message'] and len(msg['short_message'].strip()) > 0:
                 self.gelf.send(zlib.compress(json.dumps(msg)))
         except ValueError:
-            print "Warning: invalid JSON. Skipping this record."
+            print("Warning: invalid JSON. Skipping this record.")
         finally:
             self.buf.clear()
 
@@ -154,13 +154,13 @@ if __name__ == '__main__':
 
     opts_parser = optparse.OptionParser()
     opts_parser.add_option('-s', '--server', dest='host', default='localhost',
-                            help='Graylog2 server host or IP (default: %default)')
+                           help='Graylog2 server host or IP (default: %default)')
     opts_parser.add_option('-p', '--port', dest='port', default=12201, type='int',
-                            help='Graylog2 server port (default: %default)')
+                           help='Graylog2 server port (default: %default)')
     opts_parser.add_option('-t', '--tail', dest='tail', default=False, action='store_true',
-                            help='Start journalctl and tail it forever (default: %default)')
+                           help='Start journalctl and tail it forever (default: %default)')
     opts_parser.add_option('-m', '--multiline-format', dest='multiline_format', default=False, action='store_true',
-                            help='Expect multi-line JSON format (systemd version < 190) (default: %default))')
+                           help='Expect multi-line JSON format (systemd version < 190) (default: %default))')
     (opts, args) = opts_parser.parse_args()
 
     read_from_fd = None
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     for line in iter(read_from_fd.readline, ''):
         try:
             parser.run(line)
-        except Exception, e:
-            print "Error sending line to graylog"
-            print e
-            print line
+        except Exception as e:
+            print("Error sending line to graylog")
+            print(e)
+            print(line)
