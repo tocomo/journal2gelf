@@ -44,6 +44,7 @@ import sys
 import json
 import zlib
 import graypy
+import traceback
 
 from collections import deque
 
@@ -82,7 +83,7 @@ class JournalToGelf:
     def _send_gelf(self):
         try:
             msg = {'version': '1.0'}
-            record = json.loads(b''.join(self.buf))
+            record = json.loads(str(b''.join(self.buf), 'utf-8'))
             for key, value in record.items():
                 # journalctl's JSON exporter will convert unprintable (incl. newlines)
                 # strings into an array of integers. We convert these integers into
@@ -165,8 +166,7 @@ if __name__ == '__main__':
 
     read_from_fd = None
     if opts.tail:
-        read_from_fd = subprocess.Popen(['journalctl', '-o', 'json', '-f'],
-                                        stdout=subprocess.PIPE).stdout
+        read_from_fd = subprocess.Popen(['journalctl', '-o', 'json', '-f'], stdout=subprocess.PIPE).stdout
     else:
         read_from_fd = sys.stdin
 
@@ -177,4 +177,4 @@ if __name__ == '__main__':
         except Exception as e:
             print("Error sending line to graylog:")
             print(line)
-            print(e)
+            traceback.print_exc()
